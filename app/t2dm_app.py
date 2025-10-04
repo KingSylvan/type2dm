@@ -151,12 +151,47 @@ def get_risk_color(risk_category):
 # Load the trained pipeline
 MODEL_PATH = 'models/t2dm_RF_d12_F1-0.149.joblib'
 try:
-    model_bundle = joblib.load(MODEL_PATH)
+    # Try loading with different protocols for compatibility
+    import pickle
+    
+    # First try with joblib
+    try:
+        model_bundle = joblib.load(MODEL_PATH)
+    except Exception as joblib_error:
+        # If joblib fails, try with pickle
+        st.warning(f"Joblib loading failed: {joblib_error}. Trying alternative loading method...")
+        try:
+            with open(MODEL_PATH, 'rb') as f:
+                model_bundle = pickle.load(f)
+        except Exception as pickle_error:
+            raise Exception(f"Both joblib and pickle loading failed. Joblib: {joblib_error}, Pickle: {pickle_error}")
+    
     model_pipeline = model_bundle['pipeline']
     model_threshold = model_bundle.get('threshold', 0.5)
+    
+    # Test the model with dummy data to ensure compatibility
+    dummy_data = pd.DataFrame({
+        'Pregnancies': [1],
+        'Glucose': [100],
+        'BloodPressure': [70],
+        'SkinThickness': [20],
+        'Insulin': [80],
+        'BMI': [25.0],
+        'DiabetesPedigreeFunction': [0.5],
+        'Age': [30]
+    })
+    
+    # Try a prediction to verify compatibility
+    _ = model_pipeline.predict_proba(dummy_data)
+    st.success("✅ Model loaded successfully and compatibility verified!")
+    
 except Exception as e:
     model_pipeline = None
-    st.error(f"Could not load model pipeline: {e}")
+    st.error(f"❌ Could not load model pipeline: {e}")
+    st.error("📋 **Possible solutions:**")
+    st.error("1. Model was trained with a different scikit-learn version")
+    st.error("2. Try retraining the model with current environment versions")
+    st.error("3. Check if all required packages are installed with correct versions")
 
 # Main app
 def main():
@@ -375,6 +410,20 @@ def main():
         <p>Built with ❤️ using Streamlit and Machine Learning</p>
     </div>
     """, unsafe_allow_html=True)
+
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown(
+    """
+    <div style='text-align: center; padding: 20px; background-color: #f0f2f6; border-radius: 10px; margin-top: 2rem;'>
+        <p style='margin: 0; color: #262730; font-size: 14px;'>
+        <strong>🚀 Powered by Sylvanus Chinedu Egbosiuba</strong><br>
+        <a href='mailto:egbosiubasylvanus@gmail.com' style='color: #ff6b6b; text-decoration: none;'>
+        📧 egbosiubasylvanus@gmail.com</a>
+        </p>
+    </div>
+    """, 
+    unsafe_allow_html=True
+)
 
 if __name__ == "__main__":
     main() 
